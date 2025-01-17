@@ -7,7 +7,7 @@
 
 
 
-#include <GB_uart.h>
+#include <GB_UART.h>
 #include <string.h>
 #include "stdio.h"
 /**************STM32 UART1 ******************/
