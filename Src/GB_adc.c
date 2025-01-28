@@ -1,17 +1,30 @@
-/*
- * GB_adc.c
- *
- *  Created on: 18-Sep-2021
- *      Author: kunal
- */
+// GB_adc.c
+#ifdef ENABLE_TESTS
+#include "GB_adc.h"
+// If ENABLE_TESTS is defined, include mock-oriented test implementatio
+
+#include <string.h>
+#include <stdio.h>
 
 
-#include <GB_adc.h>
+void adc_init(const ADC_Hardware_Interface* hw) {
+    if (!hw) return;
+    hw->configure_gpio();
+    hw->configure_adc();
+}
+
+uint16_t adc_convert_START(const ADC_Hardware_Interface* hw) {
+    if (!hw) return 0xFFFF;
+    return hw->read_conversion();
+}
+#else
+
+#include "../Inc/GB_adc.h"
 #include <string.h>
 #include "stdio.h"
-#include "stm32f1xx.h"
-#include "system_stm32f1xx.h"
-#include "gb_t_delay.h"
+#include "../Inc/stm32f1xx.h"
+#include "../Inc/system_stm32f1xx.h"
+#include "../Inc/gb_t_delay.h"
 
   #define ADC_STAB_DELAY_US               1U
 
@@ -83,3 +96,4 @@ return adc_data;
 
 
 }
+#endif

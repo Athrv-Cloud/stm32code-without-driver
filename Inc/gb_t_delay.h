@@ -8,6 +8,8 @@
 #ifndef GB_T_DELAY_H_
 #define GB_T_DELAY_H_
 
+#include <stdint.h>
+
 void timer_initialise();
 void delay_us(uint16_t us);
 void delay_ms(uint16_t ms);

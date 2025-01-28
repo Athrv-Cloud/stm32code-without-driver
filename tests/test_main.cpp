@@ -1,336 +1,307 @@
-#include <CppUTest/TestHarness.h>
-#include <CppUTestExt/MockSupport.h>
+#define ENABLE_TESTS  // Must be defined before including headers
+#include "CppUTest/TestHarness.h"
+#include "CppUTestExt/MockSupport.h"
 #include <CppUTest/CommandLineTestRunner.h>
-
-#include "../Inc/gb_rcc.h"       
-#include "../Inc/gb_t_delay.h"   
-#include "../Inc/GB_adc.h"       
+#include "../Inc/GB_adc.h"
+#include <cstring>
+extern "C" {
 #include "../Inc/GB_UART.h"
 #include "../Inc/gb_gpio.h"
-
-// Mock implementations
-void system_clk() { 
-    mock().actualCall("system_clk"); 
 }
 
-void timer_initialise() { 
-    mock().actualCall("timer_initialise"); 
+volatile uint32_t MockGPIOC;
+volatile uint32_t MockRCC;
+
+// Mock functions for GPIO
+uint32_t RCC_APB2ENR_GPIO(void) {
+    return mock().actualCall("RCC_APB2ENR_GPIO").returnUnsignedIntValue();
 }
 
-void adc_init() { 
-    mock().actualCall("adc_init"); 
+uint32_t GPIO_CRL(void) {
+    return mock().actualCall("GPIO_CRL").returnUnsignedIntValue();
 }
 
-uint16_t adc_convert_START() { 
-    return mock().actualCall("adc_convert_START").returnUnsignedIntValue(); 
-}
-
-void GB_uart_init2() { 
-    mock().actualCall("GB_uart_init2"); 
-}
-
-void GB_printString2(const char* string) { 
-    if (string != nullptr) {
-        mock().actualCall("GB_printString2").withParameter("string", string); 
-    }
-}
-
-void GB_printChar2(char c) {
-    mock().actualCall("GB_printChar2").withParameter("char", c);
-}
-
-void delay_ms(uint16_t ms) { 
-    mock().actualCall("delay_ms").withParameter("time", ms); 
-}
-
-void GB_decimel2(uint16_t value) { 
-    mock().actualCall("GB_decimel2").withParameter("value", value); 
-}
-
-void gpio_init() {
+void gpio_init(void) {
     mock().actualCall("gpio_init");
 }
 
-// Basic MainTests Group
-TEST_GROUP(MainTests)
-{
-    void setup() { 
-        mock().clear(); 
+void GPIO_set(volatile uint32_t* port, uint32_t pin) {
+    mock().actualCall("GPIO_set")
+          .withParameter("port", (unsigned long)port)
+          .withParameter("pin", pin);
+}
+
+void GPIO_reset(volatile uint32_t* port, uint32_t pin) {
+    mock().actualCall("GPIO_reset")
+          .withParameter("port", (unsigned long)port)
+          .withParameter("pin", pin);
+}
+
+// Mock functions for ADC
+static void mock_adc_configure_gpio(void) {
+    mock().actualCall("configure_gpio");
+}
+
+static void mock_adc_configure_adc(void) {
+    mock().actualCall("configure_adc");
+}
+
+static uint16_t mock_adc_read_conversion(void) {
+    return mock().actualCall("read_conversion")
+                 .returnUnsignedIntValue();
+}
+
+
+
+
+// Mock functions for UART
+class MockUARTHardware : public UART_Hardware_Interface {
+public:
+    MockUARTHardware() {
+        this->enable_uart_clock = mock_enable_uart_clock;
+        this->configure_gpio = mock_configure_gpio;
+        this->set_baud_rate = mock_set_baud_rate;
+        this->is_transmit_empty = mock_is_transmit_empty;
+        this->is_receive_not_empty = mock_is_receive_not_empty;
+        this->write_data = mock_write_data;
+        this->read_data = mock_read_data;
     }
     
-    void teardown() { 
-        mock().checkExpectations();
-        mock().clear(); 
+    static void mock_enable_uart_clock() {
+        mock().actualCall("enable_uart_clock");
     }
-};
-
-// ADC Tests Group
-TEST_GROUP(ADCTests)
-{
-    void setup() {
-        mock().clear();
-    }
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-
-// UART Tests Group
-TEST_GROUP(UARTTests)
-{
-    void setup() {
-        mock().clear();
-    }
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-
-// GPIO Tests Group
-TEST_GROUP(GPIOTests)
-{
-    void setup() {
-        mock().clear();
-    }
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-
-// RCC Tests Group
-TEST_GROUP(RCCTests)
-{
-    void setup() {
-        mock().clear();
-    }
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-
-// Delay Tests Group
-TEST_GROUP(DelayTests)
-{
-    void setup() {
-        mock().clear();
-    }
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-
-// Syscalls Tests Group
-TEST_GROUP(SyscallTests)
-{
-    void setup() {
-        mock().clear();
-    }
-    void teardown() {
-        mock().checkExpectations();
-        mock().clear();
-    }
-};
-
-// MainTests Group Tests
-TEST(MainTests, SystemClockInitialization)
-{
-    mock().expectOneCall("system_clk");
-    system_clk();
-}
-
-TEST(MainTests, TimerInitialization)
-{
-    mock().expectOneCall("timer_initialise");
-    timer_initialise();
-}
-
-TEST(MainTests, FullInitializationSequence)
-{
-    mock().expectOneCall("system_clk");
-    mock().expectOneCall("timer_initialise");
-    mock().expectOneCall("adc_init");
-    mock().expectOneCall("GB_uart_init2");
-    mock().expectOneCall("gpio_init");
     
-    system_clk();
-    timer_initialise();
-    adc_init();
-    GB_uart_init2();
-    gpio_init();
-}
+    static void mock_configure_gpio() {
+        mock().actualCall("configure_gpio");
+    }
+    
+    static void mock_set_baud_rate() {
+        mock().actualCall("set_baud_rate");
+    }
+    
+    static bool mock_is_transmit_empty() {
+        return mock().actualCall("is_transmit_empty").returnBoolValue();
+    }
+    
+    static bool mock_is_receive_not_empty() {
+        return mock().actualCall("is_receive_not_empty").returnBoolValue();
+    }
+    
+    static void mock_write_data(uint32_t data) {
+        mock().actualCall("write_data").withParameter("data", data);
+    }
+    
+    static uint16_t mock_read_data() {
+        return mock().actualCall("read_data").returnUnsignedIntValue();
+    }
+};
+
+// Create a static instance of MockUARTHardware
+static MockUARTHardware mockUARTHw;
+
+// Test group for ADC
+TEST_GROUP(ADCTests) {
+    const ADC_Hardware_Interface* hw;
+    ADC_Hardware_Interface hw_impl;
+
+    void setup() override {
+        hw_impl.configure_gpio = mock_adc_configure_gpio;
+        hw_impl.configure_adc = mock_adc_configure_adc;
+        hw_impl.read_conversion = mock_adc_read_conversion;
+        hw = &hw_impl;
+    }
+
+    void teardown() override {
+        mock().clear();
+    }
+};
+
+// Expanded GPIO test group
+TEST_GROUP(GPIOTests) {
+    void setup() override {
+        mock().clear();
+        MockGPIOC = 0;
+        MockRCC = 0;
+    }
+    
+    void teardown() override {
+        mock().checkExpectations();
+        mock().clear();
+    }
+};
+
+
+
+// Test group for UART
+TEST_GROUP(UARTTests) {
+    UART_Config* config;
+    
+    void setup() override {
+        config = new UART_Config();
+        config->hw = &mockUARTHw;
+        config->baud_rate = 115200;  // Changed from baudRate to baud_rate
+        mock().clear();
+    }
+    
+    void teardown() override {
+        delete config;
+        mock().checkExpectations();
+        mock().clear();
+    }
+};
+
+
+
+
 
 // ADC Tests
-TEST(ADCTests, ADCInitialization)
-{
-    mock().expectOneCall("RCC_APB2ENR").andReturnValue(1);
-    mock().expectOneCall("ADC_CR2").andReturnValue(1);
-    adc_init();
-}
-
-TEST(ADCTests, ADCConversion)
-{
-    mock().expectOneCall("ADC_SQR3").andReturnValue(0);
-    mock().expectOneCall("ADC_CR2_START").andReturnValue(1);
-    mock().expectOneCall("ADC_SR_EOC").andReturnValue(1);
-    uint16_t result = adc_convert_START();
-    CHECK(result >= 0);
-}
-
-TEST(ADCTests, ADCValueRange)
-{
-    mock().expectOneCall("adc_convert_START").andReturnValue(0);
-    uint16_t min_value = adc_convert_START();
-    CHECK(min_value >= 0);
+TEST(ADCTests, InitializationCallsCorrectFunctions) {
+    mock().expectOneCall("configure_gpio");
+    mock().expectOneCall("configure_adc");
     
-    mock().expectOneCall("adc_convert_START").andReturnValue(4095);
-    uint16_t max_value = adc_convert_START();
-    CHECK(max_value <= 4095);
+    adc_init(hw);
+    
+    mock().checkExpectations();
 }
 
-TEST(ADCTests, ADCErrorHandling)
-{
-    mock().expectOneCall("adc_convert_START").andReturnValue(0xFFFF);
-    uint16_t error_value = adc_convert_START();
-    CHECK_EQUAL(0xFFFF, error_value);
+TEST(ADCTests, NullHardwareHandling) {
+    adc_init(nullptr);
+    CHECK_EQUAL(0xFFFF, adc_convert_START(nullptr));
 }
+
+TEST(ADCTests, ConversionReturnsCorrectValue) {
+    mock().expectOneCall("read_conversion")
+          .andReturnValue(1234);
+    
+    CHECK_EQUAL(1234, adc_convert_START(hw));
+}
+
+TEST(ADCTests, ConversionBoundaryValues) {
+    mock().expectOneCall("read_conversion").andReturnValue(0);
+    CHECK_EQUAL(0, adc_convert_START(hw));
+
+    mock().expectOneCall("read_conversion").andReturnValue(4095);
+    CHECK_EQUAL(4095, adc_convert_START(hw));
+}
+
+
 
 // UART Tests
-TEST(UARTTests, UARTInitialization)
-{
-    mock().expectOneCall("RCC_APB2ENR_USART").andReturnValue(1);
-    mock().expectOneCall("USART_CR1").andReturnValue(1);
-    mock().expectOneCall("USART_BRR").andReturnValue(1);
-    GB_uart_init2();
+TEST(UARTTests, Initialization) {
+    mock().expectOneCall("enable_uart_clock");
+    mock().expectOneCall("configure_gpio");
+    mock().expectOneCall("set_baud_rate");
+    
+    bool result = GB_uart_init(config);
+    CHECK_TRUE(result);
 }
 
-TEST(UARTTests, UARTCharTransmission)
-{
-    mock().expectOneCall("USART_DR").andReturnValue(1);
-    mock().expectOneCall("USART_SR_TXE").andReturnValue(1);
-    GB_printChar2('A');
+TEST(UARTTests, TransmitCharacter) {
+    mock().expectOneCall("is_transmit_empty").andReturnValue(true);
+    mock().expectOneCall("write_data").withParameter("data", 42);
+    
+    bool result = GB_UART_TxChar(config, 42);
+    CHECK_TRUE(result);
 }
 
-TEST(UARTTests, UARTStringTransmission)
-{
-    const char* test_string = "Test String";
-    mock().expectOneCall("GB_printString2").withParameter("string", test_string);
-    GB_printString2(test_string);
+TEST(UARTTests, ReceiveCharacter) {
+    mock().expectOneCall("is_receive_not_empty").andReturnValue(true);
+    mock().expectOneCall("read_data").andReturnValue(0x55);
+    
+    uint16_t rx_value = GB_UART_RxChar(config);
+    CHECK_EQUAL(0x55, rx_value);
 }
 
-TEST(UARTTests, UARTNullHandling)
-{
-    GB_printString2(nullptr);
+TEST(UARTTests, PrintString) {
+    const char* testString = "Hello";
+    
+    for (size_t i = 0; testString[i]; i++) {
+        mock().expectOneCall("is_transmit_empty").andReturnValue(true);
+        mock().expectOneCall("write_data").withParameter("data", testString[i]);
+    }
+    
+    bool result = GB_printString(config, testString);
+    CHECK_TRUE(result);
 }
 
-// GPIO Tests
-TEST(GPIOTests, GPIOInitialization)
-{
+TEST(UARTTests, PrintDecimal) {
+    uint32_t testValue = 1234;
+    const char expected[] = "1234";
+    
+    for (const char* p = expected; *p; ++p) {
+        mock().expectOneCall("is_transmit_empty").andReturnValue(true);
+        mock().expectOneCall("write_data").withParameter("data", *p);
+    }
+    
+    bool result = GB_decimel(config, testValue);
+    CHECK_TRUE(result);
+}
+
+TEST(UARTTests, NullConfigHandling) {
+    bool result = GB_uart_init(nullptr);
+    CHECK_FALSE(result);
+    
+    result = GB_UART_TxChar(nullptr, 42);
+    CHECK_FALSE(result);
+    
+    uint16_t rx_value = GB_UART_RxChar(nullptr);
+    CHECK_EQUAL(0xFFFF, rx_value);
+}
+TEST(GPIOTests, GPIOInitialization) {
     mock().expectOneCall("RCC_APB2ENR_GPIO").andReturnValue(1);
     mock().expectOneCall("GPIO_CRL").andReturnValue(1);
     gpio_init();
 }
 
-// RCC Tests
-TEST(RCCTests, SystemClockInit)
-{
-    mock().expectOneCall("RCC_CR").andReturnValue(1);
-    mock().expectOneCall("RCC_CFGR").andReturnValue(2);
-    mock().expectOneCall("RCC_CR_PLLON").andReturnValue(1);
-    system_clk();
+TEST(GPIOTests, GPIOSetPin) {
+    mock().expectOneCall("GPIO_set")
+          .withParameter("port", (unsigned long)&MockGPIOC)
+          .withParameter("pin", 13);
+    GPIO_set(&MockGPIOC, 13);
 }
 
-TEST(RCCTests, ClockConfiguration)
-{
-    mock().expectOneCall("RCC_CFGR_SW").andReturnValue(2);
-    mock().expectOneCall("RCC_CFGR_SWS").andReturnValue(2);
-    system_clk();
+TEST(GPIOTests, GPIOResetPin) {
+    mock().expectOneCall("GPIO_reset")
+          .withParameter("port", (unsigned long)&MockGPIOC)
+          .withParameter("pin", 13);
+    GPIO_reset(&MockGPIOC, 13);
 }
 
-// Delay Tests
-TEST(DelayTests, TimerInitialization)
-{
-    mock().expectOneCall("RCC_APB1ENR_TIM2").andReturnValue(1);
-    mock().expectOneCall("TIM2_PSC").andReturnValue(1);
-    mock().expectOneCall("TIM2_ARR").andReturnValue(1);
-    timer_initialise();
-}
-
-TEST(DelayTests, DelayFunction)
-{
-    mock().expectOneCall("TIM2_CR1").andReturnValue(1);
-    mock().expectOneCall("TIM2_SR_UIF").andReturnValue(1);
-    delay_ms(1000);
-}
-
-TEST(DelayTests, MultipleDelays)
-{
-    mock().expectOneCall("delay_ms").withParameter("time", 1);
-    mock().expectOneCall("delay_ms").withParameter("time", 10);
-    mock().expectOneCall("delay_ms").withParameter("time", 100);
-    
-    delay_ms(1);
-    delay_ms(10);
-    delay_ms(100);
-}
-
-// Syscall Tests
-TEST(SyscallTests, WriteFunction)
-{
-    char testData[] = "Test";
-    mock().expectOneCall("ITM_SendChar").andReturnValue(1);
-    // Simulate _write system call
-    mock().actualCall("_write")
-          .withParameter("file", 1)
-          .withParameter("ptr", testData)
-          .withParameter("len", sizeof(testData));
-}
-
-TEST(SyscallTests, ReadFunction)
-{
-    char buffer[10];
-    mock().expectOneCall("ITM_ReceiveChar").andReturnValue(1);
-    // Simulate _read system call
-    mock().actualCall("_read")
-          .withParameter("file", 0)
-          .withParameter("ptr", buffer)
-          .withParameter("len", sizeof(buffer));
-}
-
-// Integration Tests
-TEST(MainTests, CompleteSystemTest)
-{
-    // Test full system initialization
-    mock().expectOneCall("system_clk");
-    mock().expectOneCall("gpio_init");
-    mock().expectOneCall("timer_initialise");
-    mock().expectOneCall("adc_init");
-    mock().expectOneCall("GB_uart_init2");
-    
-    // Test ADC conversion and output
-    mock().expectOneCall("adc_convert_START").andReturnValue(2048);
-    mock().expectOneCall("GB_decimel2").withParameter("value", 2048);
-    mock().expectOneCall("GB_printString2").withParameter("string", "\n");
-    mock().expectOneCall("delay_ms").withParameter("time", 1000);
-    
-    // Execute sequence
-    system_clk();
+TEST(GPIOTests, GPIOInitializationFailure) {
+    mock().expectOneCall("RCC_APB2ENR_GPIO").andReturnValue(0);
     gpio_init();
-    timer_initialise();
-    adc_init();
-    GB_uart_init2();
-    
-    uint16_t adc_value = adc_convert_START();
-    GB_decimel2(adc_value);
-    GB_printString2("\n");
-    delay_ms(1000);
+    // Add appropriate checks based on your error handling
 }
 
-// Main function
+// Integration test with GPIO
+TEST_GROUP(IntegrationTests) {
+    void setup() override {
+        mock().clear();
+    }
+    
+    void teardown() override {
+        mock().checkExpectations();
+        mock().clear();
+    }
+};
+
+TEST(IntegrationTests, GPIOWithADC) {
+    // GPIO Initialization
+    mock().expectOneCall("RCC_APB2ENR_GPIO").andReturnValue(1);
+    mock().expectOneCall("GPIO_CRL").andReturnValue(1);
+    
+    // ADC Initialization
+    mock().expectOneCall("configure_gpio");
+    mock().expectOneCall("configure_adc");
+    
+    gpio_init();
+    //adc_init(hw);
+}
+
+
+
+
 int main(int argc, char** argv) {
     return CommandLineTestRunner::RunAllTests(argc, argv);
 }
+

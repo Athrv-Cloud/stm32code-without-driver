@@ -105,6 +105,7 @@ include_directories(
         Src/gb_t_delay.c
         Src/GB_uart.c
         Startup/startup_stm32f103c8tx.s
+        
     )
 
     # Generate HEX and BIN files after build

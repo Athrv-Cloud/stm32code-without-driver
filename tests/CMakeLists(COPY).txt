@@ -1,0 +1,61 @@
+cmake_minimum_required(VERSION 3.16)
+
+# Project configuration
+project(ADC_Tests LANGUAGES C CXX)
+
+# Default build type
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+# Enable code coverage
+option(COVERAGE "Enable code coverage" ON)
+if(COVERAGE)
+    message(STATUS "Enabling code coverage flags")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -g -O0")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
+endif()
+
+# Include directories
+set(SOURCE_DIR ../Src)
+set(INCLUDE_DIR ../Inc)
+include_directories(${SOURCE_DIR} ${INCLUDE_DIR})
+
+file(GLOB SRC_FILES ${SOURCE_DIR}/*.c)
+file(GLOB INC_FILES ${INCLUDE_DIR}/*.h)
+list(FILTER SRC_FILES EXCLUDE REGEX ".*main.c")  
+list(FILTER SRC_FILES EXCLUDE REGEX ".*gb_rcc.c") 
+list(FILTER SRC_FILES EXCLUDE REGEX ".*gb_gpio.c") 
+list(FILTER SRC_FILES EXCLUDE REGEX ".*syscalls.c") 
+list(FILTER SRC_FILES EXCLUDE REGEX ".*gb_t_delay.c") 
+list(FILTER SRC_FILES EXCLUDE REGEX ".*sysmem.c")  # Exclude sysmem.c
+list(FILTER SRC_FILES EXCLUDE REGEX ".*system_stm32f1xx.c")  # Exclude system file
+file(GLOB TEST_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+
+# Combine all source and test files
+set(TEST_SOURCES ${SRC_FILES} ${TEST_FILES})
+
+
+# Define the test executable
+add_executable(ADC_tests ${TEST_SOURCES})
+
+# Link against CppUTest
+find_package(CppUTest REQUIRED)
+target_link_libraries(ADC_tests PRIVATE CppUTest CppUTestExt)
+
+# Add preprocessor definitions for unit testing
+target_compile_definitions(ADC_tests PRIVATE 
+    UNIT_TEST 
+    TESTING_BUILD
+    DENABLE_TESTS
+)
+
+# Set output directory for the test executable
+set_target_properties(ADC_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+)
+
+# Enable testing
+enable_testing()
+add_test(NAME ADC_tests COMMAND ADC_tests)

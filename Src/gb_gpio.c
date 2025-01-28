@@ -5,7 +5,11 @@
  *      Author: kunal
  */
 
+#ifdef ENABLE_TESTS
+#include "mock_stm32f1xx.h"
+#else
 #include "stm32f1xx.h"
+#endif
 #include "gb_gpio.h"
 
 

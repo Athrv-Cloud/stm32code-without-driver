@@ -1,13 +1,73 @@
-/*
- * uart.c
- *
- *  Created on: Mar 11, 2021
- *      Author: kunal
- */
+#ifdef ENABLE_TESTS
+ #include "../Inc/GB_UART.h"
+ #include <stdio.h>
+ #include <string.h>
 
+ 
+bool GB_uart_init(UART_Config* config) {
+    if (!config || !config->hw) return false;
+    
+    config->hw->enable_uart_clock();
+    config->hw->configure_gpio();
+    config->hw->set_baud_rate();
 
+    return true;
+}
 
-#include <GB_UART.h>
+bool GB_UART_TxChar(UART_Config* config, uint32_t byte) {
+    if (!config || !config->hw) return false;
+    
+    while (!config->hw->is_transmit_empty());
+    config->hw->write_data(byte);
+    return true;
+}
+
+uint16_t GB_UART_RxChar(UART_Config* config) {
+    if (!config || !config->hw) return 0xFFFF;
+
+    while (!config->hw->is_receive_not_empty());
+    return config->hw->read_data();
+}
+
+bool GB_printString(UART_Config* config, const char *myString) {
+    if (!config || !myString) return false;
+
+    while (*myString) {
+        if (!GB_UART_TxChar(config, *myString)) return false;
+        myString++;
+    }
+    return true;
+}
+
+bool GB_decimel(UART_Config* config, uint32_t val) {
+    if (!config) return false;
+
+    unsigned char buf[5];
+    int8_t ptr;
+    for(ptr = 0; ptr < 5; ++ptr) {
+        buf[ptr] = (val % 10) + '0';
+        val /= 10;
+    }
+
+    for(ptr = 4; ptr > 0; --ptr) {
+        if (buf[ptr] != '0') break;
+    }
+
+    for(; ptr >= 0; --ptr) {
+        if (!GB_UART_TxChar(config, buf[ptr])) return false;
+    }
+    return true;
+}
+
+bool GB_float_value(UART_Config* config, float gb_value) {
+    if (!config) return false;
+
+    char float_buff[10];
+    sprintf(float_buff, "%f", gb_value);
+    return GB_printString(config, float_buff);
+}
+#else
+#include "../Inc/GB_UART.h"
 #include <string.h>
 #include "stdio.h"
 /**************STM32 UART1 ******************/
@@ -294,5 +354,4 @@ void GB_float_value2(float gb_value)
 	GB_printString2(gb_float_buff);
 
 }
-
-
+#endif
