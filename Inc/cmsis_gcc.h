@@ -153,7 +153,7 @@ __STATIC_FORCEINLINE uint32_t __get_CONTROL(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, control" : "=r" (result) );
-  return(result);
+  return (result);
 }
 
 
@@ -207,7 +207,7 @@ __STATIC_FORCEINLINE uint32_t __get_IPSR(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
-  return result;
+  return (result);
 }
 
 
