@@ -153,7 +153,7 @@ __STATIC_FORCEINLINE uint32_t __get_CONTROL(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, control" : "=r" (result) );
-  return (result);
+  return result;
 }
 
 
@@ -168,7 +168,7 @@ __STATIC_FORCEINLINE uint32_t __TZ_get_CONTROL_NS(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, control_ns" : "=r" (result) );
-  return(result);
+  return result;
 }
 #endif
 
@@ -207,7 +207,7 @@ __STATIC_FORCEINLINE uint32_t __get_IPSR(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
-  return (result);
+  return result;
 }
 
 
@@ -221,7 +221,7 @@ __STATIC_FORCEINLINE uint32_t __get_APSR(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, apsr" : "=r" (result) );
-  return(result);
+  return result;
 }
 
 
@@ -235,7 +235,7 @@ __STATIC_FORCEINLINE uint32_t __get_xPSR(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, xpsr" : "=r" (result) );
-  return(result);
+  return result;
 }
 
 
@@ -249,7 +249,7 @@ __STATIC_FORCEINLINE uint32_t __get_PSP(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, psp"  : "=r" (result) );
-  return(result);
+  return result;
 }
 
 
@@ -264,7 +264,7 @@ __STATIC_FORCEINLINE uint32_t __TZ_get_PSP_NS(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, psp_ns"  : "=r" (result) );
-  return(result);
+  return result;
 }
 #endif
 
@@ -318,7 +318,7 @@ __STATIC_FORCEINLINE uint32_t __TZ_get_MSP_NS(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, msp_ns" : "=r" (result) );
-  return(result);
+  return result;
 }
 #endif
 
@@ -358,7 +358,7 @@ __STATIC_FORCEINLINE uint32_t __TZ_get_SP_NS(void)
   uint32_t result;
 
   __ASM volatile ("MRS %0, sp_ns" : "=r" (result) );
-  return(result);
+  return result;
 }
 
 
